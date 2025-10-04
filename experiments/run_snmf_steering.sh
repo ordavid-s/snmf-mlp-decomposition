@@ -42,7 +42,7 @@ PYTHONPATH=. python experiments/snmf_interp/generate_input_descriptions.py \
   --concurrency 50 \
   --retries 5
 
-PYTHONPATH=. python experiments/causal/generate_vocab_proj.py\
+PYTHONPATH=. python experiments/snmf_interp/generate_vocab_proj.py\
   --model-name gpt2-small \
   --base-path . \
   --factorization-base-path experiments/artifacts \

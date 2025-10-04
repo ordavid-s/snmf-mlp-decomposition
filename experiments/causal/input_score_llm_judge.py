@@ -132,8 +132,8 @@ async def process_entry(idx: int, entry: dict, concept_map: dict, total_entries:
     Processes one steered entry and returns a single dict that includes
     all scores for its sentences under 'sentence_results'.
     """
-    print(f"Processing entry {idx+1}/{total_entries} (K={entry['K']}, layer={entry['layer']}, h_row={entry['h_row']})")
-    key = (entry["K"], entry["layer"], entry["h_row"])
+    print(f"Processing entry {idx+1}/{total_entries} (K={entry.get('K', 'SAE')}, layer={entry['layer']}, h_row={entry['h_row'] if 'h_row' in entry else entry['index']})")
+    key = (entry["K"] if "K" in entry else "SAE", entry["layer"], entry["h_row"] if 'h_row' in entry else entry['index'])
     concept_desc = concept_map.get(key)
     if concept_desc is None:
         print(f"Warning: No concept for {key}")
@@ -150,9 +150,9 @@ async def process_entry(idx: int, entry: dict, concept_map: dict, total_entries:
         "intervention_sign": entry.get("intervention_sign"),
         "alpha": entry.get("alpha"),
         "kl": entry.get("kl"),
-        "K": entry["K"],
+        "K": entry.get("K", "SAE"),
         "layer": entry["layer"],
-        "h_row": entry["h_row"],
+        "h_row": entry["h_row"] if 'h_row' in entry else entry['index'],
         "sentence_results": sentence_results,
         "description": concept_desc
     }
@@ -197,13 +197,13 @@ async def main():
     layers = parse_int_list(args.layers)
 
     # Filter entries
-    filtered = [e for e in steered_entries if int(e["K"]) in ranks and int(e["layer"]) in layers]
+    filtered = [e for e in steered_entries if ("K" not in e or int(e["K"]) in ranks) and int(e["layer"]) in layers]
     total_entries = len(filtered)
     print(f"Selected {total_entries} entries (K in {ranks}, layer in {layers}).")
-    print(concepts)
     # Build concept lookup
+    
     concept_map = {
-        (int(c["K"]), int(c["layer"]), int(c["h_row"])): c["description"]
+        (int(c["K"]) if "K" in c else "SAE", int(c["layer"]), int(c.get('h_row', c['index']))): c["description"]
         for c in concepts
         if c.get("description") and "TRASH" not in c["description"]
     }

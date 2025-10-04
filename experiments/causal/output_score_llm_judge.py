@@ -147,8 +147,8 @@ async def process_entry(
     attempts: int,
     sparsity: str,
 ) -> dict:
-    print(f"Processing entry {idx+1}/{total_entries} (K={entry['K']}, layer={entry['layer']}, h_row={entry['h_row']})")
-    key: Tuple[int, int, int, str] = (int(entry["K"]), int(entry["layer"]), int(entry["h_row"]), entry.get("intervention_sign"))
+    print(f"Processing entry {idx+1}/{total_entries} (K={entry['K'] if 'K' in entry else 'SAE'}, layer={entry['layer']}, h_row={entry['h_row']})")
+    key: Tuple[int, int, int, str] = (int(entry["K"]) if "K" in entry else "SAE", int(entry["layer"]), int(entry["h_row"]), entry.get("intervention_sign"))
     concept_desc = concept_map.get(key)
 
     if concept_desc is None:
@@ -166,7 +166,7 @@ async def process_entry(
         "intervention_sign": entry.get("intervention_sign"),
         "alpha": entry.get("alpha"),
         "kl": entry.get("kl"),
-        "K": entry["K"],
+        "K": entry["K"] if "K" in entry else "SAE",
         "layer": entry["layer"],
         "h_row": entry["h_row"],
         "sentence_results": sentence_results,
@@ -216,13 +216,13 @@ async def main():
     layers = parse_int_list(args.layers)
 
     # Filter entries
-    filtered = [e for e in steered_entries if int(e["K"]) in ranks and int(e["layer"]) in layers]
+    filtered = [e for e in steered_entries if ("K" not in e or int(e["K"]) in ranks) and int(e["layer"]) in layers]
     total_entries = len(filtered)
     print(f"Selected {total_entries} entries (K in {ranks}, layer in {layers}).")
 
     # Build lookup: (K, layer, h_row, sign) -> description  (skip TRASH)
     concept_map = {
-        (int(c["K"]), int(c["layer"]), int(c["h_row"]), c["sign"]): c["description"]
+        (int(c["K"]) if ("K" in c and c["K"] != "SAE") else "SAE", int(c["layer"]), int(c["h_row"]), c["sign"]): c["description"]
         for c in concepts
         if c.get("description") and "TRASH" not in c["description"]
     }

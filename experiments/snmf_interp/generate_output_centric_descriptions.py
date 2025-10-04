@@ -4,10 +4,7 @@ import json
 import re
 import asyncio
 import argparse
-from typing import List, Optional, Tuple
-
-# If your script is in ./scripts/, this keeps project imports working:
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+from typing import List, Optional
 
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
@@ -59,22 +56,15 @@ async def run(args):
     if not api_key:
         raise RuntimeError("Missing OPENAI_API_KEY in environment (.env).")
 
-    # env-provided defaults (can be overridden by CLI)
-    env_input  = os.getenv("INPUT_JSON")
-    env_output = os.getenv("OUTPUT_JSON")
-    env_model  = os.getenv("MODEL")
-    env_top_m  = os.getenv("TOP_M")
-    env_conc   = os.getenv("CONCURRENCY")
-
-    input_json  = args.input or env_input  or 'rebuttal/init_methods/svd/vocab_proj_svd.json'
-    output_json = args.output or env_output or 'rebuttal/init_methods/svd/output_descriptions_svd.json'
-    model       = args.model  or env_model  or 'gpt-4o-mini'
-    top_m       = args.top_m  if args.top_m is not None else (int(env_top_m) if env_top_m else 25)
-    concurrency = args.concurrency if args.concurrency is not None else (int(env_conc) if env_conc else 50)
+    input_json  = args.input  
+    output_json = args.output
+    model       = args.model  or 'gpt-4o-mini'
+    top_m       = args.top_m
+    concurrency = args.concurrency 
     max_tokens  = args.max_tokens
 
-    layers = parse_int_list(args.layers) or [23, 31]
-    ranks  = parse_int_list(args.ranks)  or []
+    layers = parse_int_list(args.layers) 
+    ranks  = parse_int_list(args.ranks)
 
     # client & semaphore
     client = AsyncOpenAI(api_key=api_key)
@@ -128,16 +118,16 @@ Make sure you output a very precise and detailed description of the concept that
         )
 
         prompt = CONNECTION_PROMPT.format(token_context_str=token_context_str)
-        print(f"[→] Generating for K={entry['K']} layer={entry['layer']} row={entry['h_row']}…", flush=True)
+        print(f"[→] Generating for K={entry.get('K', 'SAE')} layer={entry['layer']} row={entry['h_row']}…", flush=True)
 
         resp = await _call_openai([{"role": "user", "content": prompt}])
         content = resp.choices[0].message.content
         result  = extract_results_section(content) or "ERROR: no Results section"
-        print(f"[✔] Done K={entry['K']} layer={entry['layer']}", flush=True)
+        print(f"[✔] Done K={entry.get('K', 'SAE')} layer={entry['layer']}", flush=True)
         return {
             'description': result,
             'layer': entry['layer'],
-            'K': entry['K'],
+            'K': entry.get('K', 'SAE'),
             'h_row': entry['h_row'],
             'sign': entry.get('intervention_sign')
         }
@@ -146,7 +136,7 @@ Make sure you output a very precise and detailed description of the concept that
     data = load_data(input_json)
     filtered = [
         e for e in data
-        if int(e['layer']) in layers and (not ranks or int(e['K']) in ranks)
+        if int(e['layer']) in layers and ('K' not in e or not ranks or int(e['K']) in ranks)
     ]
 
     print(f"Processing {len(filtered)} entries…", flush=True)
