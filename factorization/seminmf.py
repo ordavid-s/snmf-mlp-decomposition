@@ -209,9 +209,7 @@ class NMFSemiNMF(nn.Module):
         best_F = None
         best_G = None
         num_no_improve = 0
-        prev_loss = float('inf')
         best_it = max_iter
-        prev_loss = float('inf')
         with torch.no_grad():
             
             for it in range(max_iter):
@@ -233,7 +231,7 @@ class NMFSemiNMF(nn.Module):
 
                 numer = P_plus + self.G_ @ Q_minus
                 denom = P_minus + self.G_ @ Q_plus 
-                G_new = self.G_ * torch.sqrt((numer / denom))
+                G_new = self.G_ * torch.sqrt((numer / (denom+1e-6)))
                 self.G_.data.copy_(G_new)
 
 
