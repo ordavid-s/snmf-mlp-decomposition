@@ -127,13 +127,13 @@ async def llm_judge(sentence: str, concept: str, entry_idx: int, sent_idx: int, 
         "final_score": final_score,
     }
 
-async def process_entry(idx: int, entry: dict, concept_map: dict, total_entries: int, model: str) -> dict:
+async def process_entry(idx: int, entry: dict, concept_map: dict, total_entries: int, model: str, is_diffmean=False) -> dict:
     """
     Processes one steered entry and returns a single dict that includes
     all scores for its sentences under 'sentence_results'.
     """
     print(f"Processing entry {idx+1}/{total_entries} (K={entry.get('K', 'SAE')}, layer={entry['layer']}, h_row={entry['h_row'] if 'h_row' in entry else entry['index']})")
-    key = (entry["K"] if "K" in entry else "SAE", entry["layer"], entry["h_row"] if 'h_row' in entry else entry['index'])
+    key = (entry["K"] if not is_diffmean and ("K" in entry) else "SAE", entry["layer"], entry["h_row"] if 'h_row' in entry else entry['index'])
     concept_desc = concept_map.get(key)
     if concept_desc is None:
         print(f"Warning: No concept for {key}")
@@ -169,6 +169,11 @@ async def main():
     parser.add_argument("--ranks", required=True, help='K filter, e.g. "100" or "64,100" or "64-128"')
     parser.add_argument("--layers", required=True, help='Layer filter, e.g. "0,8,16" or "0-16"')
     parser.add_argument("--concurrency", type=int, default=50, help="Max concurrent API calls (default: 50)")
+    parser.add_argument(
+        "--diffmean",
+        action="store_true",
+        help="Enable DiffMean baseline"
+        )
     parser.add_argument("--api-key-var", default="OPENAI_API_KEY",
                         help="Env var name holding your API key (default: OPENAI_API_KEY)")
     args = parser.parse_args()
@@ -201,16 +206,15 @@ async def main():
     total_entries = len(filtered)
     print(f"Selected {total_entries} entries (K in {ranks}, layer in {layers}).")
     # Build concept lookup
-    
     concept_map = {
-        (int(c["K"]) if "K" in c else "SAE", int(c["layer"]), int(c.get('h_row', c['index']))): c["description"]
+        (int(c["K"]) if not args.diffmean and  "K" in c else "SAE", int(c["layer"]), int(c['h_row'] if 'h_row' in c else c['index'])): c.get("description", c.get("concept"))
         for c in concepts
-        if c.get("description") and "TRASH" not in c["description"]
+        if c.get("description", c.get("concept")) and "TRASH" not in c.get("description", c.get("concept"))
     }
 
     # Process
     tasks = [
-        asyncio.create_task(process_entry(i, entry, concept_map, total_entries, model=args.model))
+        asyncio.create_task(process_entry(i, entry, concept_map, total_entries, model=args.model, is_diffmean=args.diffmean))
         for i, entry in enumerate(filtered)
     ]
     all_results = await asyncio.gather(*tasks)
