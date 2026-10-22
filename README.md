@@ -1,6 +1,6 @@
 # Decomposing MLP Activations into Interpretable Features via Semi-Nonnegative Matrix Factorization
 
-This repository contains the official code for the paper: **“Decomposing MLP Activations into Interpretable Features via Semi-Nonnegative Matrix Factorization”** (2025).
+This repository contains the official code for the paper: **“Constructing Interpretable Features from Compositional Neuron Groups”** (ACL 2026).
 
 ---
 
