@@ -1,4 +1,4 @@
-# Decomposing MLP Activations into Interpretable Features via Semi-Nonnegative Matrix Factorization
+# Constructing Interpretable Features from Compositional Neuron Groups
 
 This repository contains the official code for the paper: **“Constructing Interpretable Features from Compositional Neuron Groups”** (ACL 2026).
 
